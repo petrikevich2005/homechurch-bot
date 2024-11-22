@@ -1,5 +1,7 @@
 # utils_module
 import logging
+from typing import Dict
+from typing import List
 
 import telebot
 from telebot import types
@@ -34,13 +36,15 @@ class TelebotTools:
     def __init__(self, bot: telebot.TeleBot) -> None:
         self.bot = bot
 
-    def create_keyboard(self, button: dict, columns: int) -> types.InlineKeyboardMarkup:
-        keyboard = types.InlineKeyboardMarkup(row_width=columns)
+    def create_keyboard(
+        self, row_width: int, children: List[Dict[str, str]]
+    ) -> types.InlineKeyboardMarkup:
+        keyboard = types.InlineKeyboardMarkup(row_width=row_width)
         _buttons = [
             types.InlineKeyboardButton(
                 text=child["text"], callback_data=child.get("data"), url=child.get("url")
             )
-            for child in button["children"]
+            for child in children["children"]
         ]
         keyboard.add(*_buttons)
         return keyboard
@@ -48,22 +52,27 @@ class TelebotTools:
     def edit_keyboard_message(
         self,
         callback: types.CallbackQuery,
-        button: dict,
+        children: List[Dict[str, str]],
         reply: str | None = None,
-        columns: int = 2,
     ) -> None:
+        row_width = children["row_width"]
         self.bot.edit_message_text(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
-            text=reply if reply else button["reply"],
-            reply_markup=self.create_keyboard(button, columns),
+            text=reply if reply else children["reply"],
+            reply_markup=self.create_keyboard(row_width, children),
+            parse_mode="Markdown",
         )
 
     def send_keyboard_message(
-        self, message: types.Message, button: dict, reply: str | None = None, columns: int = 2
+        self,
+        message: types.Message,
+        children: dict,
+        reply: str | None = None,
     ) -> None:
+        row_width = children["row_width"]
         self.bot.send_message(
             message.chat.id,
-            reply if reply else button["reply"],
-            reply_markup=self.create_keyboard(button, columns),
+            reply if reply else children["reply"],
+            reply_markup=self.create_keyboard(row_width, children),
         )

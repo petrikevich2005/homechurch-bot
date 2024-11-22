@@ -1,0 +1,62 @@
+welcome:
+  reply: |
+    Привет, {first_name}!
+    Добро пожаловать!
+  row_width: 1
+  children:
+    - text: "Меню"
+      data: 'menu'
+
+menu:
+  reply: "Главное меню:"
+  row_width: 2
+  children:
+    - text: "Тайный Ангел"
+      data: 'secret_angel'
+    - text: "Информация"
+      data: 'information'
+    - text: "Подписаться"
+      data: 'social_networks'
+
+secret_angel:
+  not_available:
+    reply: |
+      Тайный Ангел
+    row_width: 2
+    children:
+      - text: "Участвовать"
+        data: 'add_to_secret_angel'
+      - text: "Назад"
+        data: 'menu'
+  available:
+    reply: |
+      Вы Тайный Ангел для {first_name} ({username})
+      Пожелания:
+      {wish}
+    row_width: 2
+    children:
+      - text: "Отменить"
+        data: 'remove_from_secret_angel'
+      - text: "Назад"
+        data: 'menu'
+
+add_to_secret_angel:
+  reply: "Теперь вы участник игры Тайный Ангел"
+  row_width: 1
+  children:
+    - text: "Меню"
+      data: 'menu'
+
+remove_from_secret_angel:
+  reply: "Вы больше не участник игры Тайный Ангел"
+  row_width: 1
+  children:
+    - text: "Меню"
+      data: 'menu'
+
+registration_timeout:
+  reply: "Извините, но время регистрации вышло и уже нельзя изменить вашу причастность к игре. В случае возникновения форс-мажоров напишите пожалуйста лидеру 🤓"
+  row_width: 1
+  children:
+    - text: "Меню"
+      data: 'menu'
