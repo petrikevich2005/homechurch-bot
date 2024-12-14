@@ -62,7 +62,7 @@ class TelebotTools:
             message_id=callback.message.id,
             text=reply if reply else children["reply"],
             reply_markup=self.create_keyboard(row_width, children),
-            parse_mode="Markdown",
+            parse_mode="HTML",
         )
 
     def send_keyboard_message(

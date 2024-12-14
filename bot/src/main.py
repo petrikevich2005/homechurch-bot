@@ -10,7 +10,7 @@ from bot.src.sqlite import SQLite
 from common import utils
 
 
-REGISTRATION_STATUS = True
+REGISTRATION_STATUS = False
 
 
 env_file = "bot/.env"
@@ -56,6 +56,12 @@ def menu(callback: types.CallbackQuery) -> None:
     tools.edit_keyboard_message(callback, buttons["menu"])
 
 
+# render info
+@bot.callback_query_handler(func=lambda callback: callback.data == "information")
+def information(callback: types.CallbackQuery) -> None:
+    tools.edit_keyboard_message(callback, buttons["information"])
+
+
 # menu of secret angel before
 @bot.callback_query_handler(
     func=lambda callback: callback.data == "secret_angel" and REGISTRATION_STATUS
@@ -86,17 +92,20 @@ def secret_angel_before(callback: types.CallbackQuery) -> None:
 )
 def secret_angel_after(callback: types.CallbackQuery) -> None:
     available = sql.get_angel_status(callback.from_user.id)
-    children = buttons["secret_angel_after"]["available" if available else "not_available"]
-    data = sql.get_data(sql.get_angel(callback.from_user.id))
-    tools.edit_keyboard_message(
-        callback,
-        children,
-        reply=children["reply"]
-        if not available
-        else children["reply"].format(
-            first_name=data["first_name"], username=data["username"], wish=data["wish"]
-        ),
-    )
+
+    if available:
+        children = buttons["secret_angel_after"]["available"]
+        data = sql.get_data(sql.get_angel(callback.from_user.id))
+        tools.edit_keyboard_message(
+            callback,
+            children,
+            reply=children["reply"].format(
+                first_name=data["first_name"], username=data["username"], wish=data["wish"]
+            ),
+        )
+    else:
+        children = buttons["secret_angel_after"]["not_available"]
+        tools.edit_keyboard_message(callback, children)
 
 
 # add user to secret angel

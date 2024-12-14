@@ -13,12 +13,22 @@ class SQLite:
             ).fetchone()
         return data is not None
 
-    def add_to_database(self, user_id: int, username: str, first_name: str) -> None:
+    def add_to_database(self, user_id: int, username: str, first_name: str) -> bool:
         with sqlite3.connect(self.file) as cursor:
             cursor.execute(
                 "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (user_id, username, first_name, False, None, None, False),
+                (
+                    user_id,
+                    username if username is not None else "",
+                    first_name,
+                    False,
+                    None,
+                    None,
+                    False,
+                ),
             )
+            return True
+        return False
 
     def get_angel_status(self, user_id: int) -> bool:
         with sqlite3.connect(self.file) as cursor:

@@ -15,8 +15,16 @@ menu:
       data: 'secret_angel'
     - text: "Информация"
       data: 'information'
-    - text: "Подписаться"
-      data: 'social_networks'
+    - text: "Instagram"
+      url: 'https://www.instagram.com/home.of.unity/'
+
+information:
+  reply: |
+    info...
+  row_width: 1
+  children:
+    - text: "Назад"
+      data: 'menu'
 
 secret_angel_before:
   not_available:
@@ -68,9 +76,9 @@ secret_angel_after:
         data: 'menu'
   available:
     reply: |
-      Вы являетесь Тайным Ангелом для этого человека:
-      {first_name} @{username}
-      Его пожелания:
+      Вы являетесь <b>Тайным Ангелом</b> для этого человека:
+      <b>{first_name}</b> @{username}
+      Пожелания этого человека:
       {wish}
     row_width: 2
     children:
@@ -119,8 +127,8 @@ randomized:
   reply: |
     Хей!
     И вот пришло время узнать кого ты осчастливишь в этом году!
-    кликай на кнопку и смотри)
+    кликай на кнопку и смотри
   row_width: 1
   children:
-    - text: Показать
+    - text: "Показать"
       data: 'secret_angel'
