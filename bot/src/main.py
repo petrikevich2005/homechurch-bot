@@ -5,11 +5,12 @@ import telebot
 from telebot import types
 import yaml
 
+from bot.src.data_processing import DataProcessing
 from bot.src.sqlite import SQLite
 from common import utils
 
 
-GAME_STATUS = True
+REGISTRATION_STATUS = True
 
 
 env_file = "bot/.env"
@@ -43,7 +44,7 @@ def welcome(message: types.Message) -> None:
             message.from_user.id, message.from_user.username, message.from_user.first_name
         )
     tools.send_keyboard_message(
-        message,
+        message.chat.id,
         buttons["welcome"],
         reply=buttons["welcome"]["reply"].format(first_name=message.from_user.first_name),
     )
@@ -55,32 +56,53 @@ def menu(callback: types.CallbackQuery) -> None:
     tools.edit_keyboard_message(callback, buttons["menu"])
 
 
-# menu of secret angel
-@bot.callback_query_handler(func=lambda callback: callback.data == "secret_angel")
-def secret_angel(callback: types.CallbackQuery) -> None:
+# menu of secret angel before
+@bot.callback_query_handler(
+    func=lambda callback: callback.data == "secret_angel" and REGISTRATION_STATUS
+)
+def secret_angel_before(callback: types.CallbackQuery) -> None:
     available = sql.get_angel_status(callback.from_user.id)
-    children = (
-        buttons["secret_angel"]["available"]
-        if available
-        else buttons["secret_angel"]["not_available"]
-    )
+    wish_available = sql.get_wish(callback.from_user.id) is not None
+    if not available:
+        children = buttons["secret_angel_before"]["not_available"]
+    else:
+        children = buttons["secret_angel_before"]["available"][
+            "wish_available" if wish_available else "wish_not_available"
+        ]
     tools.edit_keyboard_message(
         callback,
         children,
-        reply=buttons["secret_angel"]["available"]["reply"].format(
-            first_name="ИМЯ",
-            username="username",
-            wish="пожелания",
-        )
-        if available
-        else None,
+        reply=None
+        if not available or not wish_available
+        else buttons["secret_angel_before"]["available"]["wish_available"]["reply"].format(
+            wish=sql.get_wish(callback.from_user.id)
+        ),
+    )
+
+
+# menu of secret angel after
+@bot.callback_query_handler(
+    func=lambda callback: callback.data == "secret_angel" and not REGISTRATION_STATUS
+)
+def secret_angel_after(callback: types.CallbackQuery) -> None:
+    available = sql.get_angel_status(callback.from_user.id)
+    children = buttons["secret_angel_after"]["available" if available else "not_available"]
+    data = sql.get_data(sql.get_angel(callback.from_user.id))
+    tools.edit_keyboard_message(
+        callback,
+        children,
+        reply=children["reply"]
+        if not available
+        else children["reply"].format(
+            first_name=data["first_name"], username=data["username"], wish=data["wish"]
+        ),
     )
 
 
 # add user to secret angel
 @bot.callback_query_handler(func=lambda callback: callback.data == "add_to_secret_angel")
 def add_to_secret_angel(callback: types.CallbackQuery) -> None:
-    if GAME_STATUS:
+    if REGISTRATION_STATUS:
         sql.set_angel_status(callback.from_user.id, True)
         tools.edit_keyboard_message(callback, buttons["add_to_secret_angel"])
     else:
@@ -90,11 +112,44 @@ def add_to_secret_angel(callback: types.CallbackQuery) -> None:
 # remove user from secret angel
 @bot.callback_query_handler(func=lambda callback: callback.data == "remove_from_secret_angel")
 def remove_from_secret_angel(callback: types.CallbackQuery) -> None:
-    if GAME_STATUS:
+    if REGISTRATION_STATUS:
         sql.set_angel_status(callback.from_user.id, False)
         tools.edit_keyboard_message(callback, buttons["remove_from_secret_angel"])
     else:
         tools.edit_keyboard_message(callback, buttons["registration_timeout"])
+
+
+# set wish of user
+@bot.callback_query_handler(func=lambda callback: callback.data == "set_wish")
+def set_wish_for_user(callback: types.CallbackQuery) -> None:
+    if REGISTRATION_STATUS:
+        tools.edit_keyboard_message(callback, buttons["set_wish"])
+        bot.register_next_step_handler(callback.message, write_wish_to_database)
+    else:
+        tools.edit_keyboard_message(callback, buttons["registration_timeout"])
+
+
+def write_wish_to_database(message: types.Message) -> None:
+    if REGISTRATION_STATUS:
+        sql.set_wish(message.from_user.id, message.text)
+        tools.send_keyboard_message(message.chat.id, buttons["set_wish_success"])
+    else:
+        tools.send_keyboard_message(message.from_user.id, buttons["registration_timeout"])
+
+
+# randomize secret angels
+@bot.message_handler(commands=["randomize"])
+def randomize_secret_angels(message: types.Message) -> None:
+    global REGISTRATION_STATUS  # noqa: PLW0603
+    if sql.get_admin_status(message.from_user.id) and REGISTRATION_STATUS:
+        REGISTRATION_STATUS = False
+        logger.info("randomize...")
+        users = sql.get_users_list()
+        parallel = DataProcessing.random_users(users=users)
+        sql.set_angels(users, parallel)
+
+        for user_id in users:
+            tools.send_keyboard_message(user_id, buttons["randomized"])
 
 
 # START BOT

@@ -1,7 +1,5 @@
 # utils_module
 import logging
-from typing import Dict
-from typing import List
 
 import telebot
 from telebot import types
@@ -37,22 +35,25 @@ class TelebotTools:
         self.bot = bot
 
     def create_keyboard(
-        self, row_width: int, children: List[Dict[str, str]]
+        self, row_width: int, children: list[dict[str, str]]
     ) -> types.InlineKeyboardMarkup:
-        keyboard = types.InlineKeyboardMarkup(row_width=row_width)
-        _buttons = [
-            types.InlineKeyboardButton(
-                text=child["text"], callback_data=child.get("data"), url=child.get("url")
-            )
-            for child in children["children"]
-        ]
-        keyboard.add(*_buttons)
-        return keyboard
+        if row_width > 0:
+            keyboard = types.InlineKeyboardMarkup(row_width=row_width)
+            _buttons = [
+                types.InlineKeyboardButton(
+                    text=child["text"], callback_data=child.get("data"), url=child.get("url")
+                )
+                for child in children["children"]
+            ]
+            keyboard.add(*_buttons)
+            return keyboard
+        else:
+            return None
 
     def edit_keyboard_message(
         self,
         callback: types.CallbackQuery,
-        children: List[Dict[str, str]],
+        children: list[dict[str, str]],
         reply: str | None = None,
     ) -> None:
         row_width = children["row_width"]
@@ -66,13 +67,13 @@ class TelebotTools:
 
     def send_keyboard_message(
         self,
-        message: types.Message,
+        chat_id: int,
         children: dict,
         reply: str | None = None,
     ) -> None:
         row_width = children["row_width"]
         self.bot.send_message(
-            message.chat.id,
+            chat_id,
             reply if reply else children["reply"],
             reply_markup=self.create_keyboard(row_width, children),
         )
