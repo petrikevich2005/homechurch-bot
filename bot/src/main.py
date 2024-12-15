@@ -10,7 +10,8 @@ from bot.src.sqlite import SQLite
 from common import utils
 
 
-REGISTRATION_STATUS = False
+REGISTRATION_STATUS = True
+timeout = []
 
 
 env_file = "bot/.env"
@@ -37,9 +38,9 @@ def echo(message: types.Message) -> None:
 
 
 # welcome command
-@bot.message_handler(commands=["start", "menu"])
+@bot.message_handler(commands=["start"])
 def welcome(message: types.Message) -> None:
-    if not sql.check_available_user_in_database(message.from_user.id):
+    if not sql.check_available_user_in_database(message.from_user.id, message.from_user.username):
         sql.add_to_database(
             message.from_user.id, message.from_user.username, message.from_user.first_name
         )
@@ -50,16 +51,30 @@ def welcome(message: types.Message) -> None:
     )
 
 
+# open menu
+@bot.message_handler(commands=["menu"])
+def open_menu(message: types.Message) -> None:
+    if not sql.check_available_user_in_database(message.from_user.id, message.from_user.username):
+        sql.add_to_database(
+            message.from_user.id, message.from_user.username, message.from_user.first_name
+        )
+    tools.send_keyboard_message(message.chat.id, buttons["menu"])
+
+
+# update command
+@bot.message_handler(commands=["update"])
+def update(message: types.Message) -> None:
+    if not sql.check_available_user_in_database(message.from_user.id, message.from_user.username):
+        sql.add_to_database(
+            message.from_user.id, message.from_user.username, message.from_user.first_name
+        )
+    tools.send_keyboard_message(message.chat.id, buttons["update"])
+
+
 # render global menu
 @bot.callback_query_handler(func=lambda callback: callback.data == "menu")
 def menu(callback: types.CallbackQuery) -> None:
     tools.edit_keyboard_message(callback, buttons["menu"])
-
-
-# render info
-@bot.callback_query_handler(func=lambda callback: callback.data == "information")
-def information(callback: types.CallbackQuery) -> None:
-    tools.edit_keyboard_message(callback, buttons["information"])
 
 
 # menu of secret angel before
@@ -99,23 +114,35 @@ def secret_angel_after(callback: types.CallbackQuery) -> None:
         tools.edit_keyboard_message(
             callback,
             children,
-            reply=children["reply"].format(
-                first_name=data["first_name"], username=data["username"], wish=data["wish"]
+            reply=children["reply_with_wish"].format(
+                first_name=data["first_name"] if data["first_name"] is not None else "",
+                username=data["username"] if data["username"] is not None else "unnamed",
+                wish=data["wish"],
+            )
+            if data["wish"] is not None
+            else children["reply_without_wish"].format(
+                first_name=data["first_name"] if data["first_name"] is not None else "",
+                username=data["username"] if data["username"] is not None else "",
             ),
         )
     else:
-        children = buttons["secret_angel_after"]["not_available"]
-        tools.edit_keyboard_message(callback, children)
+        tools.edit_keyboard_message(callback, buttons["secret_angel_after"]["not_available"])
 
 
 # add user to secret angel
 @bot.callback_query_handler(func=lambda callback: callback.data == "add_to_secret_angel")
 def add_to_secret_angel(callback: types.CallbackQuery) -> None:
-    if REGISTRATION_STATUS:
-        sql.set_angel_status(callback.from_user.id, True)
-        tools.edit_keyboard_message(callback, buttons["add_to_secret_angel"])
+    if callback.from_user.username is not None:
+        sql.check_available_user_in_database(callback.from_user.id, callback.from_user.username)
+        if REGISTRATION_STATUS:
+            sql.set_angel_status(callback.from_user.id, True)
+            tools.edit_keyboard_message(callback, buttons["add_to_secret_angel"])
+        else:
+            tools.edit_keyboard_message(callback, buttons["registration_timeout"])
     else:
-        tools.edit_keyboard_message(callback, buttons["registration_timeout"])
+        if callback.from_user.id not in timeout:
+            tools.send_keyboard_message(callback.from_user.id, buttons["username_not_found"])
+            timeout.append(callback.from_user.id)
 
 
 # remove user from secret angel
@@ -159,6 +186,22 @@ def randomize_secret_angels(message: types.Message) -> None:
 
         for user_id in users:
             tools.send_keyboard_message(user_id, buttons["randomized"])
+
+
+# what's next
+@bot.callback_query_handler(func=lambda callback: callback.data == "what_next")
+def what_next(callback: types.CallbackQuery) -> None:
+    tools.edit_keyboard_message(
+        callback,
+        buttons["what_next"],
+        reply=buttons["what_next"]["reply"].format(first_name=callback.from_user.first_name),
+    )
+
+
+# how it work
+@bot.callback_query_handler(func=lambda callback: callback.data == "how_it_work")
+def how_it_work(callback: types.CallbackQuery) -> None:
+    tools.edit_keyboard_message(callback, buttons["how_it_work"])
 
 
 # START BOT

@@ -6,11 +6,15 @@ class SQLite:
     def __init__(self, sql_file: str) -> None:
         self.file = sql_file
 
-    def check_available_user_in_database(self, user_id: int) -> bool:
+    def check_available_user_in_database(self, user_id: int, username: str) -> bool:
         with sqlite3.connect(self.file) as cursor:
             data = cursor.execute(
-                "SELECT user_id FROM users WHERE user_id = ?", (user_id,)
+                "SELECT username FROM users WHERE user_id = ?", (user_id,)
             ).fetchone()
+            if data is not None and data[0] != username:
+                cursor.execute(
+                    "UPDATE users SET username = ? WHERE user_id = ?", (username, user_id)
+                )
         return data is not None
 
     def add_to_database(self, user_id: int, username: str, first_name: str) -> bool:
@@ -19,7 +23,7 @@ class SQLite:
                 "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     user_id,
-                    username if username is not None else "",
+                    username,
                     first_name,
                     False,
                     None,

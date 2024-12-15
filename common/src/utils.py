@@ -76,4 +76,5 @@ class TelebotTools:
             chat_id,
             reply if reply else children["reply"],
             reply_markup=self.create_keyboard(row_width, children),
+            parse_mode="HTML",
         )
